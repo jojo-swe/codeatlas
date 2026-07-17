@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from .exporters import to_mermaid
 from .indexer import PythonIndexer
 
 
@@ -15,7 +16,13 @@ def build_parser() -> argparse.ArgumentParser:
         description="Index a Python repository and export its symbol/dependency graph.",
     )
     parser.add_argument("path", nargs="?", default=".", help="Repository path (default: current directory)")
-    parser.add_argument("--output", "-o", type=Path, help="Write JSON result to this file")
+    parser.add_argument("--output", "-o", type=Path, help="Write result to this file")
+    parser.add_argument(
+        "--format",
+        choices=("json", "mermaid"),
+        default="json",
+        help="Output format (default: json)",
+    )
     parser.add_argument("--compact", action="store_true", help="Emit compact JSON")
     parser.add_argument("--fail-on-errors", action="store_true", help="Exit non-zero when files could not be parsed")
     return parser
@@ -30,7 +37,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"codeatlas: {exc}", file=sys.stderr)
         return 2
 
-    payload = index.to_json(indent=None if args.compact else 2)
+    payload = (
+        index.to_json(indent=None if args.compact else 2)
+        if args.format == "json"
+        else to_mermaid(index)
+    )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(payload + "\n", encoding="utf-8")

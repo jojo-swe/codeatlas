@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "codeatlas"
-version = "0.1.0"
+version = "0.2.0"
 description = "A fast local codebase indexer that turns Python repositories into navigable symbol and dependency graphs."
 readme = "README.md"
 requires-python = ">=3.11"
