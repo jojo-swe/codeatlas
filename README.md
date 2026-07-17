@@ -10,6 +10,8 @@ The current alpha indexes:
 - Inheritance relationships
 - Function and method calls
 - Parse errors without aborting the full scan
+- Confidence-aware resolution of calls and inheritance targets
+- Deterministic Mermaid graph export
 
 ## Quick start
 
@@ -30,8 +32,22 @@ Example output:
     "dependency_count": 42,
     "error_count": 0,
     "file_count": 8,
+    "resolved_dependency_count": 27,
     "symbol_count": 31
   }
+}
+```
+
+Each resolvable call or inheritance relationship includes the original target plus:
+
+```json
+{
+  "source": "app.main",
+  "target": "Worker.run",
+  "kind": "calls",
+  "resolved_target": "app.Worker.run",
+  "confidence": 0.95,
+  "resolution": "same-module"
 }
 ```
 
@@ -46,6 +62,14 @@ Print compact JSON to stdout:
 ```bash
 codeatlas . --compact
 ```
+
+Export a Mermaid graph:
+
+```bash
+codeatlas . --format mermaid --output codeatlas.mmd
+```
+
+The Mermaid output is deterministic, making it suitable for generated documentation and reviewable CI artifacts.
 
 Fail CI when source files cannot be parsed:
 
@@ -70,11 +94,17 @@ AST parser (no code execution)
    +--> Call graph
    |
    v
+Confidence-aware symbol resolver
+   |
+   v
 Serializable CodeIndex
    |
    +--> JSON
+   +--> Mermaid
    +--> Future web visualizer
 ```
+
+Resolution is conservative. CodeAtlas records the raw target even when it cannot establish a unique destination, rather than inventing a relationship.
 
 ## Development
 
@@ -86,16 +116,16 @@ pytest
 
 ## Near-term roadmap
 
-- Resolve call targets to known symbols
+- Expand target resolution across relative imports and package layouts
 - Add graph filtering and search
-- Export Graphviz and Mermaid
+- Export Graphviz
 - Add repository statistics and hotspots
 - Add a local interactive web UI
 - Support JavaScript and TypeScript through pluggable language adapters
 
 ## Status
 
-`0.1.0-alpha` is a working vertical slice, not a finished code-intelligence platform. The core file discovery, AST analysis, relationship extraction, JSON serialization, tests, and CI are implemented.
+`0.2.0-alpha` is a working code-intelligence vertical slice. The core file discovery, AST analysis, relationship extraction, confidence-aware target resolution, JSON and Mermaid serialization, tests, and CI are implemented.
 
 ## License
 
