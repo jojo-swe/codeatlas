@@ -10,6 +10,7 @@ The current alpha provides:
 - Structural hotspot and risk ranking
 - Transitive change-impact analysis
 - Local Git churn, ownership, bus-factor and temporal-coupling analysis
+- Declarative architecture layers and forbidden-dependency policies
 - JSON and Mermaid export
 - A zero-dependency local web explorer
 - Parse-error reporting without aborting the full scan
@@ -30,17 +31,62 @@ Launch the interactive explorer for any Python repository:
 codeatlas /path/to/repository --serve
 ```
 
-The browser opens at `http://127.0.0.1:8765` and provides:
-
-- a navigable dependency graph
-- symbol and file search
-- filters for symbol and relationship kinds
-- risk-ranked hotspots
-- dependency-cycle isolation
-- incoming and outgoing relationship inspection
-- transitive change-impact exploration
+The browser opens at `http://127.0.0.1:8765` and provides a navigable dependency graph, symbol and file search, relationship filters, hotspots, dependency-cycle isolation and transitive change-impact exploration.
 
 Nothing is uploaded and the analyzed repository is never executed.
+
+## Architecture policies
+
+CodeAtlas can enforce team-specific dependency boundaries from a version-controlled JSON file. Start with `codeatlas.policy.example.json`:
+
+```json
+{
+  "layers": {
+    "presentation": ["app.ui.*", "app/api/**"],
+    "application": ["app.services.*", "app/use_cases/**"],
+    "domain": ["app.domain.*", "app/domain/**"],
+    "infrastructure": ["app.db.*", "app/infrastructure/**"]
+  },
+  "rules": [
+    {
+      "from": "presentation",
+      "deny": ["infrastructure"],
+      "message": "Presentation code must use the application layer"
+    },
+    {
+      "from": "domain",
+      "deny": ["presentation", "infrastructure"]
+    }
+  ]
+}
+```
+
+Patterns are matched against both fully qualified symbol names and normalized repository-relative file paths. Rules may optionally apply only to selected relationship kinds:
+
+```json
+{
+  "from": "presentation",
+  "deny": ["infrastructure"],
+  "kinds": ["calls", "imports"]
+}
+```
+
+Evaluate the policy and include assignments and violations in JSON output:
+
+```bash
+codeatlas . --policy codeatlas.policy.json --output atlas.json
+```
+
+Turn it into a CI architecture gate:
+
+```bash
+codeatlas . \
+  --policy codeatlas.policy.json \
+  --fail-on-policy \
+  --output atlas.json
+```
+
+Policy violations report the source and target symbols, relationship kind, assigned layers and the rule message. Invalid policies exit with code `2`; valid policies containing violations exit with code `1` when `--fail-on-policy` is enabled.
 
 ## Git intelligence
 
@@ -50,14 +96,7 @@ Combine the static graph with local repository history:
 codeatlas . --analysis --git --output atlas.json
 ```
 
-The Git layer reports:
-
-- commits and line churn per file
-- primary ownership and ownership concentration
-- file-level bus factor
-- files that repeatedly change together
-- temporal-coupling confidence
-- combined structural and historical risk
+The Git layer reports commits and line churn per file, primary ownership, ownership concentration, file-level bus factor, temporal coupling and combined structural/historical risk.
 
 The default history window is one year and at most 500 commits. Both are configurable:
 
@@ -82,10 +121,10 @@ Export the complete explorer as one self-contained HTML file:
 codeatlas . --html codeatlas-report.html
 ```
 
-Include Git data in the embedded report payload:
+Embed Git and architecture-policy data in the report payload:
 
 ```bash
-codeatlas . --git --html codeatlas-report.html
+codeatlas . --git --policy codeatlas.policy.json --html codeatlas-report.html
 ```
 
 The report has no CDN, Node.js or runtime-server dependency and can be opened directly in a browser.
@@ -110,17 +149,22 @@ Export the resolved graph as Mermaid:
 codeatlas . --mermaid architecture.mmd
 ```
 
-Use CodeAtlas as a CI architecture guardrail:
+Combine guardrails in CI:
 
 ```bash
-codeatlas . --fail-on-errors --fail-on-cycles --output atlas.json
+codeatlas . \
+  --policy codeatlas.policy.json \
+  --fail-on-errors \
+  --fail-on-cycles \
+  --fail-on-policy \
+  --output atlas.json
 ```
 
 Exit codes:
 
 - `0`: scan completed and configured guardrails passed
-- `1`: an enabled parse, cycle or ownership guardrail failed
-- `2`: invalid input, unavailable Git history, unknown symbol or explorer startup failure
+- `1`: an enabled parse, cycle, ownership or architecture-policy guardrail failed
+- `2`: invalid input, unavailable Git history, invalid policy, unknown symbol or explorer startup failure
 
 ## Architecture
 
@@ -132,9 +176,13 @@ Repository
    |       +--> Import / inheritance / call graph
    |
    +--> Local Git log (read-only)
-           +--> Churn and ownership
-           +--> Bus factor
-           +--> Temporal coupling
+   |       +--> Churn and ownership
+   |       +--> Bus factor
+   |       +--> Temporal coupling
+   |
+   +--> Architecture policy
+           +--> Layer assignment
+           +--> Forbidden-edge checks
    |
    v
 Graph intelligence
@@ -159,15 +207,14 @@ pytest
 
 ## Near-term roadmap
 
-- Surface Git risk and coupling as first-class interactive UI panels
+- Surface Git and policy risk as first-class interactive UI panels
 - Resolve aliased and relative imports more deeply
 - Add module- and package-level aggregation
-- Add architecture-policy files and forbidden-edge checks
 - Support JavaScript and TypeScript through language adapters
 
 ## Status
 
-CodeAtlas is an active alpha. It already provides a complete local path from repository discovery and history inspection to actionable graph and socio-technical risk analysis. Language resolution remains intentionally conservative and unresolved external relationships remain visible in the analysis summary.
+CodeAtlas is an active alpha. It already provides a complete local path from repository discovery and history inspection to actionable graph, socio-technical risk and architecture-policy analysis. Language resolution remains intentionally conservative and unresolved external relationships remain visible in the analysis summary.
 
 ## License
 
