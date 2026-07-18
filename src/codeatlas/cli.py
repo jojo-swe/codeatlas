@@ -116,14 +116,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if args.serve:
         try:
-            serve(
-                index,
-                analysis,
-                host=args.host,
-                port=args.port,
-                open_browser=not args.no_browser,
-                payload=explorer_payload,
-            )
+            serve(index, analysis, host=args.host, port=args.port, open_browser=not args.no_browser)
         except OSError as exc:
             print(f"codeatlas: could not start explorer: {exc}", file=sys.stderr)
             return 2
