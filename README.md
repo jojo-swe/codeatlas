@@ -1,6 +1,6 @@
 # CodeAtlas
 
-CodeAtlas turns a Python repository into an interactive symbol, dependency and change-impact map without executing the target code.
+CodeAtlas turns a Python repository into an interactive symbol, dependency, change-impact and engineering-risk map without executing the target code.
 
 The current alpha provides:
 
@@ -9,6 +9,7 @@ The current alpha provides:
 - Dependency-cycle detection
 - Structural hotspot and risk ranking
 - Transitive change-impact analysis
+- Local Git churn, ownership, bus-factor and temporal-coupling analysis
 - JSON and Mermaid export
 - A zero-dependency local web explorer
 - Parse-error reporting without aborting the full scan
@@ -41,12 +42,50 @@ The browser opens at `http://127.0.0.1:8765` and provides:
 
 Nothing is uploaded and the analyzed repository is never executed.
 
+## Git intelligence
+
+Combine the static graph with local repository history:
+
+```bash
+codeatlas . --analysis --git --output atlas.json
+```
+
+The Git layer reports:
+
+- commits and line churn per file
+- primary ownership and ownership concentration
+- file-level bus factor
+- files that repeatedly change together
+- temporal-coupling confidence
+- combined structural and historical risk
+
+The default history window is one year and at most 500 commits. Both are configurable:
+
+```bash
+codeatlas . --git --git-since "2 years ago" --git-max-commits 2000
+codeatlas . --git --git-since all
+```
+
+Use ownership concentration as a CI guardrail:
+
+```bash
+codeatlas . --git --fail-on-single-owner --output atlas.json
+```
+
+This fails when a file has at least three inspected commits and one author owns at least 80 percent of them. Git inspection is local and read-only; CodeAtlas never fetches from a remote.
+
 ## Portable interactive report
 
 Export the complete explorer as one self-contained HTML file:
 
 ```bash
 codeatlas . --html codeatlas-report.html
+```
+
+Include Git data in the embedded report payload:
+
+```bash
+codeatlas . --git --html codeatlas-report.html
 ```
 
 The report has no CDN, Node.js or runtime-server dependency and can be opened directly in a browser.
@@ -80,24 +119,28 @@ codeatlas . --fail-on-errors --fail-on-cycles --output atlas.json
 Exit codes:
 
 - `0`: scan completed and configured guardrails passed
-- `1`: parse errors or dependency cycles reached an enabled failure condition
-- `2`: invalid input, unknown symbol or explorer startup failure
+- `1`: an enabled parse, cycle or ownership guardrail failed
+- `2`: invalid input, unavailable Git history, unknown symbol or explorer startup failure
 
 ## Architecture
 
 ```text
 Repository
    |
-   v
-Python discovery + AST parser (no code execution)
+   +--> Python discovery + AST parser (no code execution)
+   |       +--> Symbol index
+   |       +--> Import / inheritance / call graph
    |
-   +--> Symbol index
-   +--> Import / inheritance / call graph
+   +--> Local Git log (read-only)
+           +--> Churn and ownership
+           +--> Bus factor
+           +--> Temporal coupling
    |
    v
 Graph intelligence
    +--> Tarjan cycle detection
-   +--> Hotspot and risk ranking
+   +--> Structural hotspot ranking
+   +--> Historical and combined risk
    +--> Reverse-graph change impact
    |
    +--> JSON
@@ -116,15 +159,15 @@ pytest
 
 ## Near-term roadmap
 
+- Surface Git risk and coupling as first-class interactive UI panels
 - Resolve aliased and relative imports more deeply
 - Add module- and package-level aggregation
 - Add architecture-policy files and forbidden-edge checks
 - Support JavaScript and TypeScript through language adapters
-- Add Git-history-aware change risk and ownership metrics
 
 ## Status
 
-CodeAtlas is an active alpha. It already provides a complete static-analysis path from repository discovery to actionable graph exploration, but its language resolution is intentionally conservative and unresolved external relationships remain visible in the analysis summary.
+CodeAtlas is an active alpha. It already provides a complete local path from repository discovery and history inspection to actionable graph and socio-technical risk analysis. Language resolution remains intentionally conservative and unresolved external relationships remain visible in the analysis summary.
 
 ## License
 
