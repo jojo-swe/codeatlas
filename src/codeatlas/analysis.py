@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict, deque
 from dataclasses import asdict, dataclass
 
-from .indexer import CodeIndex
+from .indexer import CodeIndex, Dependency
 
 
 @dataclass(slots=True, frozen=True)
@@ -34,16 +34,40 @@ class GraphAnalysis:
     def __init__(self, index: CodeIndex) -> None:
         self.index = index
         self.symbols = {symbol.qualified_name: symbol for symbol in index.symbols}
-        self.edges = [
-            dep
-            for dep in index.dependencies
-            if dep.source in self.symbols and dep.target in self.symbols
-        ]
+        self.edges: list[Dependency] = []
+        self.unresolved_edges: list[Dependency] = []
+        for dependency in index.dependencies:
+            source = self._resolve_source(dependency.source)
+            target = self._resolve_target(dependency.target, source)
+            if source and target:
+                self.edges.append(Dependency(source, target, dependency.kind))
+            else:
+                self.unresolved_edges.append(dependency)
+
         self.forward: dict[str, set[str]] = defaultdict(set)
         self.reverse: dict[str, set[str]] = defaultdict(set)
         for edge in self.edges:
             self.forward[edge.source].add(edge.target)
             self.reverse[edge.target].add(edge.source)
+
+    def _resolve_source(self, source: str) -> str | None:
+        if source in self.symbols:
+            return source
+        candidates = [name for name in self.symbols if name == source or name.startswith(f"{source}.")]
+        return candidates[0] if len(candidates) == 1 else None
+
+    def _resolve_target(self, target: str, source: str | None) -> str | None:
+        if target in self.symbols:
+            return target
+        if source:
+            source_parts = source.split(".")
+            for cut in range(len(source_parts) - 1, 0, -1):
+                candidate = ".".join([*source_parts[:cut], target])
+                if candidate in self.symbols:
+                    return candidate
+        suffix = f".{target}"
+        candidates = [name for name in self.symbols if name.endswith(suffix)]
+        return candidates[0] if len(candidates) == 1 else None
 
     def hotspots(self, *, limit: int = 20) -> list[Hotspot]:
         ranked: list[Hotspot] = []
@@ -137,7 +161,7 @@ class GraphAnalysis:
             "symbol_kinds": dict(sorted(kinds.items())),
             "symbols_per_file": dict(sorted(files.items())),
             "resolved_edge_count": len(self.edges),
-            "unresolved_edge_count": len(self.index.dependencies) - len(self.edges),
+            "unresolved_edge_count": len(self.unresolved_edges),
         }
 
     def to_mermaid(self) -> str:
