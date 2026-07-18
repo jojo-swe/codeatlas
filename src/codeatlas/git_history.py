@@ -163,10 +163,13 @@ class GitHistoryAnalysis:
 
     def files(self, *, limit: int | None = None) -> list[FileHistory]:
         structural = self._structural_risk_by_file()
-        max_commits = max(self.file_commits.values(), default=1)
+        max_commits = max(1, max(self.file_commits.values(), default=1))
         max_churn = max(
-            (self.file_additions[file] + self.file_deletions[file] for file in self.file_commits),
-            default=1,
+            1,
+            max(
+                (self.file_additions[file] + self.file_deletions[file] for file in self.file_commits),
+                default=1,
+            ),
         )
         rows: list[FileHistory] = []
         for file, commits in self.file_commits.items():
