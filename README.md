@@ -1,15 +1,17 @@
 # CodeAtlas
 
-CodeAtlas turns a Python repository into a navigable symbol and dependency graph without executing the target code.
+CodeAtlas turns a Python repository into an interactive symbol, dependency and change-impact map without executing the target code.
 
-The current alpha indexes:
+The current alpha provides:
 
-- Python modules and files
-- Classes, functions, methods, and async functions
-- Imports
-- Inheritance relationships
-- Function and method calls
-- Parse errors without aborting the full scan
+- Python module, class, function, method and async-function indexing
+- Import, inheritance and call relationships
+- Dependency-cycle detection
+- Structural hotspot and risk ranking
+- Transitive change-impact analysis
+- JSON and Mermaid export
+- A zero-dependency local web explorer
+- Parse-error reporting without aborting the full scan
 
 ## Quick start
 
@@ -19,39 +21,67 @@ cd codeatlas
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-codeatlas /path/to/repository --output atlas.json
 ```
 
-Example output:
-
-```json
-{
-  "summary": {
-    "dependency_count": 42,
-    "error_count": 0,
-    "file_count": 8,
-    "symbol_count": 31
-  }
-}
-```
-
-Run against CodeAtlas itself:
+Launch the interactive explorer for any Python repository:
 
 ```bash
-codeatlas . --output codeatlas.json
+codeatlas /path/to/repository --serve
 ```
 
-Print compact JSON to stdout:
+The browser opens at `http://127.0.0.1:8765` and provides:
+
+- a navigable dependency graph
+- symbol and file search
+- filters for symbol and relationship kinds
+- risk-ranked hotspots
+- dependency-cycle isolation
+- incoming and outgoing relationship inspection
+- transitive change-impact exploration
+
+Nothing is uploaded and the analyzed repository is never executed.
+
+## Portable interactive report
+
+Export the complete explorer as one self-contained HTML file:
 
 ```bash
-codeatlas . --compact
+codeatlas . --html codeatlas-report.html
 ```
 
-Fail CI when source files cannot be parsed:
+The report has no CDN, Node.js or runtime-server dependency and can be opened directly in a browser.
+
+## Analysis and automation
+
+Generate enriched JSON:
 
 ```bash
-codeatlas . --fail-on-errors --output codeatlas.json
+codeatlas . --analysis --output atlas.json
 ```
+
+Inspect callers that may be affected by changing a symbol:
+
+```bash
+codeatlas . --impact codeatlas.indexer.PythonIndexer.index
+```
+
+Export the resolved graph as Mermaid:
+
+```bash
+codeatlas . --mermaid architecture.mmd
+```
+
+Use CodeAtlas as a CI architecture guardrail:
+
+```bash
+codeatlas . --fail-on-errors --fail-on-cycles --output atlas.json
+```
+
+Exit codes:
+
+- `0`: scan completed and configured guardrails passed
+- `1`: parse errors or dependency cycles reached an enabled failure condition
+- `2`: invalid input, unknown symbol or explorer startup failure
 
 ## Architecture
 
@@ -59,21 +89,21 @@ codeatlas . --fail-on-errors --output codeatlas.json
 Repository
    |
    v
-Python file discovery
-   |
-   v
-AST parser (no code execution)
+Python discovery + AST parser (no code execution)
    |
    +--> Symbol index
-   +--> Import graph
-   +--> Inheritance graph
-   +--> Call graph
+   +--> Import / inheritance / call graph
    |
    v
-Serializable CodeIndex
+Graph intelligence
+   +--> Tarjan cycle detection
+   +--> Hotspot and risk ranking
+   +--> Reverse-graph change impact
    |
    +--> JSON
-   +--> Future web visualizer
+   +--> Mermaid
+   +--> Self-contained HTML explorer
+   +--> Local threaded web server
 ```
 
 ## Development
@@ -86,16 +116,15 @@ pytest
 
 ## Near-term roadmap
 
-- Resolve call targets to known symbols
-- Add graph filtering and search
-- Export Graphviz and Mermaid
-- Add repository statistics and hotspots
-- Add a local interactive web UI
-- Support JavaScript and TypeScript through pluggable language adapters
+- Resolve aliased and relative imports more deeply
+- Add module- and package-level aggregation
+- Add architecture-policy files and forbidden-edge checks
+- Support JavaScript and TypeScript through language adapters
+- Add Git-history-aware change risk and ownership metrics
 
 ## Status
 
-`0.1.0-alpha` is a working vertical slice, not a finished code-intelligence platform. The core file discovery, AST analysis, relationship extraction, JSON serialization, tests, and CI are implemented.
+CodeAtlas is an active alpha. It already provides a complete static-analysis path from repository discovery to actionable graph exploration, but its language resolution is intentionally conservative and unresolved external relationships remain visible in the analysis summary.
 
 ## License
 
