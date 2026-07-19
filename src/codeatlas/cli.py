@@ -10,6 +10,7 @@ from pathlib import Path
 from .analysis import GraphAnalysis
 from .git_history import GitHistoryAnalysis, GitHistoryError
 from .indexer import PythonIndexer
+from .policy import ArchitecturePolicy, PolicyError
 from .web import build_payload, render_html, serve
 
 
@@ -25,6 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--git", action="store_true", help="Include local Git churn, ownership and coupling analysis")
     parser.add_argument("--git-since", default="1 year ago", help="Git history window (default: '1 year ago'; use 'all' for full history)")
     parser.add_argument("--git-max-commits", type=int, default=500, help="Maximum Git commits to inspect (default: 500)")
+    parser.add_argument("--policy", type=Path, help="Evaluate a JSON architecture policy file")
     parser.add_argument("--mermaid", type=Path, help="Write the resolved graph as Mermaid flowchart syntax")
     parser.add_argument("--html", type=Path, help="Write a self-contained interactive HTML explorer")
     parser.add_argument("--serve", action="store_true", help="Launch the local interactive graph explorer")
@@ -36,6 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fail-on-errors", action="store_true", help="Exit non-zero when files could not be parsed")
     parser.add_argument("--fail-on-cycles", action="store_true", help="Exit non-zero when resolved dependency cycles exist")
     parser.add_argument("--fail-on-single-owner", action="store_true", help="Exit non-zero when Git finds high-confidence single-owner files")
+    parser.add_argument("--fail-on-policy", action="store_true", help="Exit non-zero when architecture policy violations exist")
     return parser
 
 
@@ -46,6 +49,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.git_max_commits < 1:
         print("codeatlas: --git-max-commits must be at least 1", file=sys.stderr)
+        return 2
+    if args.fail_on_policy and args.policy is None:
+        print("codeatlas: --fail-on-policy requires --policy", file=sys.stderr)
         return 2
 
     try:
@@ -75,6 +81,15 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         payload["git"] = git_summary
 
+    policy_summary = None
+    if args.policy is not None:
+        try:
+            policy_summary = ArchitecturePolicy.load(args.policy).summary(analysis)
+        except PolicyError as exc:
+            print(f"codeatlas: architecture policy unavailable: {exc}", file=sys.stderr)
+            return 2
+        payload["policy"] = policy_summary
+
     if args.impact:
         try:
             impacted = analysis.impact(args.impact, depth=args.impact_depth)
@@ -90,6 +105,8 @@ def main(argv: list[str] | None = None) -> int:
     explorer_payload = build_payload(index, analysis)
     if git_summary is not None:
         explorer_payload["git"] = git_summary
+    if policy_summary is not None:
+        explorer_payload["policy"] = policy_summary
 
     if args.html:
         args.html.parent.mkdir(parents=True, exist_ok=True)
@@ -113,6 +130,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.fail_on_cycles and analysis.cycles():
         return 1
     if args.fail_on_single_owner and git_summary and git_summary["single_owner_file_count"]:
+        return 1
+    if args.fail_on_policy and policy_summary and policy_summary["violation_count"]:
         return 1
     if args.serve:
         try:
