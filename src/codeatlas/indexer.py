@@ -5,9 +5,10 @@ from __future__ import annotations
 import ast
 import json
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Iterable
+from typing import ClassVar
 
 
 @dataclass(slots=True)
@@ -194,7 +195,15 @@ class _Resolver:
 class PythonIndexer:
     """Index Python files beneath a repository root without executing them."""
 
-    DEFAULT_IGNORES = {".git", ".venv", "venv", "__pycache__", "build", "dist", ".tox"}
+    DEFAULT_IGNORES: ClassVar[set[str]] = {
+        ".git",
+        ".venv",
+        "venv",
+        "__pycache__",
+        "build",
+        "dist",
+        ".tox",
+    }
 
     def __init__(self, root: str | Path, *, ignores: Iterable[str] | None = None) -> None:
         self.root = Path(root).resolve()
