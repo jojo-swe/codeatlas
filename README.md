@@ -6,12 +6,15 @@ The current alpha provides:
 
 - Python module, class, function, method and async-function indexing
 - Import, inheritance and call relationships
+- Confidence-aware resolution of calls and inheritance targets
 - Dependency-cycle detection
 - Structural hotspot and risk ranking
 - Transitive change-impact analysis
 - Local Git churn, ownership, bus-factor and temporal-coupling analysis
 - Declarative architecture layers and forbidden-dependency policies
-- JSON and Mermaid export
+- JSON export, including resolution confidence
+- Deterministic Mermaid export of the full graph
+- Mermaid export of the resolved symbol graph
 - A zero-dependency local web explorer
 - Parse-error reporting without aborting the full scan
 
@@ -34,6 +37,35 @@ codeatlas /path/to/repository --serve
 The browser opens at `http://127.0.0.1:8765` and provides a navigable dependency graph, symbol and file search, relationship filters, hotspots, dependency-cycle isolation and transitive change-impact exploration.
 
 Nothing is uploaded and the analyzed repository is never executed.
+
+Index the repository as JSON:
+
+```bash
+codeatlas . --output codeatlas.json
+```
+
+Print compact JSON to stdout:
+
+```bash
+codeatlas . --compact
+```
+
+## Symbol resolution
+
+Each dependency keeps its original target. Resolvable calls and inheritance relationships also record where that target landed and how confident the match is:
+
+```json
+{
+  "source": "app.main",
+  "target": "Worker.run",
+  "kind": "calls",
+  "resolved_target": "app.Worker.run",
+  "confidence": 0.95,
+  "resolution": "same-module"
+}
+```
+
+The index summary includes `resolved_dependency_count` beside the raw dependency and symbol counts. Resolution is conservative: CodeAtlas records the raw target even when it cannot establish a unique destination, rather than inventing a relationship.
 
 ## Architecture policies
 
@@ -143,11 +175,21 @@ Inspect callers that may be affected by changing a symbol:
 codeatlas . --impact codeatlas.indexer.PythonIndexer.index
 ```
 
-Export the resolved graph as Mermaid:
+Export the deterministic full graph, including unresolved endpoints and confidence-aware targets, as Mermaid:
+
+```bash
+codeatlas . --format mermaid --output codeatlas.mmd
+```
+
+That Mermaid output is stable for the same index, which makes it suitable for generated documentation and reviewable CI artifacts.
+
+Export only the resolved symbol-to-symbol graph:
 
 ```bash
 codeatlas . --mermaid architecture.mmd
 ```
+
+Graph analysis, cycles, change impact, architecture policies and this resolved diagram prefer an indexer `resolved_target` when it names a known symbol. Edges the indexer leaves unresolved still fall back to structural name matching.
 
 Combine guardrails in CI:
 
@@ -175,6 +217,9 @@ Repository
    |       +--> Symbol index
    |       +--> Import / inheritance / call graph
    |
+   v
+Confidence-aware symbol resolver
+   |
    +--> Local Git log (read-only)
    |       +--> Churn and ownership
    |       +--> Bus factor
@@ -186,13 +231,15 @@ Repository
    |
    v
 Graph intelligence
+   +--> Confidence-aware targets when they name an indexed symbol
    +--> Tarjan cycle detection
    +--> Structural hotspot ranking
    +--> Historical and combined risk
    +--> Reverse-graph change impact
    |
    +--> JSON
-   +--> Mermaid
+   +--> Deterministic Mermaid (--format mermaid)
+   +--> Resolved-symbol Mermaid (--mermaid)
    +--> Self-contained HTML explorer
    +--> Local threaded web server
 ```
@@ -207,14 +254,16 @@ pytest
 
 ## Near-term roadmap
 
+- Expand target resolution across relative imports and package layouts
 - Surface Git and policy risk as first-class interactive UI panels
-- Resolve aliased and relative imports more deeply
+- Add graph filtering and search beyond the explorer
+- Export Graphviz
 - Add module- and package-level aggregation
-- Support JavaScript and TypeScript through language adapters
+- Support JavaScript and TypeScript through pluggable language adapters
 
 ## Status
 
-CodeAtlas is an active alpha. It already provides a complete local path from repository discovery and history inspection to actionable graph, socio-technical risk and architecture-policy analysis. Language resolution remains intentionally conservative and unresolved external relationships remain visible in the analysis summary.
+`0.2.0-alpha` is an active local code-intelligence slice. It already indexes a repository, resolves call and inheritance targets with confidence, and turns that graph into JSON, deterministic Mermaid, cycle and hotspot analysis, change impact, Git risk, architecture-policy checks, and a local explorer. Unresolved external relationships stay visible instead of being invented.
 
 ## License
 

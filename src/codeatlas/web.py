@@ -130,7 +130,7 @@ def serve(index: CodeIndex, analysis: GraphAnalysis, *, host: str = "127.0.0.1",
     document = render_html(build_payload(index, analysis)).encode("utf-8")
 
     class Handler(BaseHTTPRequestHandler):
-        def do_GET(self) -> None:  # noqa: N802
+        def do_GET(self) -> None:
             if self.path not in {"/", "/index.html"}:
                 self.send_error(404)
                 return

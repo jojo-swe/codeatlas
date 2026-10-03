@@ -1,6 +1,7 @@
 """CodeAtlas public package API."""
 
-from .indexer import CodeIndex, PythonIndexer, Symbol
+from .exporters import to_mermaid
+from .indexer import CodeIndex, Dependency, PythonIndexer, Symbol
 
-__all__ = ["CodeIndex", "PythonIndexer", "Symbol"]
-__version__ = "0.1.0"
+__all__ = ["CodeIndex", "Dependency", "PythonIndexer", "Symbol", "to_mermaid"]
+__version__ = "0.2.0"

@@ -38,7 +38,7 @@ class GraphAnalysis:
         self.unresolved_edges: list[Dependency] = []
         for dependency in index.dependencies:
             source = self._resolve_source(dependency.source)
-            target = self._resolve_target(dependency.target, source)
+            target = self._resolved_edge_target(dependency, source)
             if source and target:
                 self.edges.append(Dependency(source, target, dependency.kind))
             else:
@@ -49,6 +49,12 @@ class GraphAnalysis:
         for edge in self.edges:
             self.forward[edge.source].add(edge.target)
             self.reverse[edge.target].add(edge.source)
+
+    def _resolved_edge_target(self, dependency: Dependency, source: str | None) -> str | None:
+        """Prefer the indexer's confidence-aware target, then the structural fallback."""
+        if dependency.resolved_target in self.symbols:
+            return dependency.resolved_target
+        return self._resolve_target(dependency.target, source)
 
     def _resolve_source(self, source: str) -> str | None:
         if source in self.symbols:

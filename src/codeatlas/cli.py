@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from .analysis import GraphAnalysis
+from .exporters import to_mermaid
 from .git_history import GitHistoryAnalysis, GitHistoryError
 from .indexer import PythonIndexer
 from .policy import ArchitecturePolicy, PolicyError
@@ -20,14 +21,20 @@ def build_parser() -> argparse.ArgumentParser:
         description="Index a Python repository and analyze its symbol/dependency graph.",
     )
     parser.add_argument("path", nargs="?", default=".", help="Repository path (default: current directory)")
-    parser.add_argument("--output", "-o", type=Path, help="Write JSON result to this file")
+    parser.add_argument("--output", "-o", type=Path, help="Write JSON or Mermaid output to this file")
+    parser.add_argument(
+        "--format",
+        choices=("json", "mermaid"),
+        default="json",
+        help="Primary output format (default: json). Mermaid is the deterministic full graph.",
+    )
     parser.add_argument("--compact", action="store_true", help="Emit compact JSON")
     parser.add_argument("--analysis", action="store_true", help="Include hotspots, cycles and graph metrics")
     parser.add_argument("--git", action="store_true", help="Include local Git churn, ownership and coupling analysis")
     parser.add_argument("--git-since", default="1 year ago", help="Git history window (default: '1 year ago'; use 'all' for full history)")
     parser.add_argument("--git-max-commits", type=int, default=500, help="Maximum Git commits to inspect (default: 500)")
     parser.add_argument("--policy", type=Path, help="Evaluate a JSON architecture policy file")
-    parser.add_argument("--mermaid", type=Path, help="Write the resolved graph as Mermaid flowchart syntax")
+    parser.add_argument("--mermaid", type=Path, help="Write the resolved symbol graph as Mermaid flowchart syntax")
     parser.add_argument("--html", type=Path, help="Write a self-contained interactive HTML explorer")
     parser.add_argument("--serve", action="store_true", help="Launch the local interactive graph explorer")
     parser.add_argument("--host", default="127.0.0.1", help="Explorer bind address (default: 127.0.0.1)")
@@ -113,7 +120,10 @@ def main(argv: list[str] | None = None) -> int:
         args.html.write_text(render_html(explorer_payload), encoding="utf-8")
         print(f"Interactive explorer -> {args.html}")
 
-    serialized = json.dumps(payload, indent=None if args.compact else 2, sort_keys=True)
+    if args.format == "mermaid":
+        serialized = to_mermaid(index)
+    else:
+        serialized = json.dumps(payload, indent=None if args.compact else 2, sort_keys=True)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(serialized + "\n", encoding="utf-8")

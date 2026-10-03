@@ -46,3 +46,29 @@ def test_mermaid_contains_resolved_nodes_and_edges_only() -> None:
     assert diagram.startswith("flowchart LR\n")
     assert "external.print" not in diagram
     assert "-->|calls|" in diagram
+
+
+def test_prefers_confidence_aware_target_over_structural_suffix() -> None:
+    index = CodeIndex(
+        root="/repo",
+        files=["app.py", "service.py", "other.py"],
+        symbols=[
+            Symbol("main", "function", "app.py", 1, "app.main"),
+            Symbol("execute", "function", "service.py", 1, "service.execute"),
+            Symbol("run", "function", "other.py", 1, "other.run"),
+        ],
+        dependencies=[
+            Dependency(
+                "app.main",
+                "run",
+                "calls",
+                resolved_target="service.execute",
+                confidence=0.98,
+                resolution="import-alias",
+            )
+        ],
+    )
+
+    edges = [(edge.source, edge.target, edge.kind) for edge in GraphAnalysis(index).edges]
+
+    assert edges == [("app.main", "service.execute", "calls")]

@@ -54,12 +54,12 @@ class ArchitecturePolicy:
                 raise PolicyError(f"rule references unknown source layer: {rule.source}")
             unknown = set(rule.deny) - known
             if unknown:
-                raise PolicyError(f"rule references unknown denied layer: {sorted(unknown)[0]}")
+                raise PolicyError(f"rule references unknown denied layer: {min(unknown)}")
         self.layers = layers
         self.rules = rules
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "ArchitecturePolicy":
+    def from_dict(cls, payload: dict[str, Any]) -> ArchitecturePolicy:
         raw_layers = payload.get("layers")
         raw_rules = payload.get("rules", [])
         if not isinstance(raw_layers, dict):
@@ -101,7 +101,7 @@ class ArchitecturePolicy:
         return cls(layers, rules)
 
     @classmethod
-    def load(cls, path: str | Path) -> "ArchitecturePolicy":
+    def load(cls, path: str | Path) -> ArchitecturePolicy:
         policy_path = Path(path)
         try:
             payload = json.loads(policy_path.read_text(encoding="utf-8"))
