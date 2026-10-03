@@ -1,5 +1,7 @@
+import json
 from pathlib import Path
 
+from codeatlas.cli import main
 from codeatlas.exporters import to_mermaid
 from codeatlas.indexer import PythonIndexer
 
@@ -62,3 +64,32 @@ def test_mermaid_export_is_deterministic_and_uses_resolved_targets(tmp_path: Pat
     assert first.startswith("flowchart LR\n")
     assert '"sample.Worker.run"' in first
     assert '"calls"' in first
+
+
+def test_cli_json_keeps_resolution_and_graph_analysis(tmp_path: Path) -> None:
+    (tmp_path / "sample.py").write_text(
+        "class Worker:\n    def run(self): pass\n\ndef main():\n    Worker().run()\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "atlas.json"
+
+    assert main([str(tmp_path), "--analysis", "--output", str(output)]) == 0
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["summary"]["resolved_dependency_count"] >= 1
+    assert "hotspots" in payload["analysis"]
+    assert any(dependency.get("resolved_target") for dependency in payload["dependencies"])
+
+
+def test_cli_format_mermaid_prints_deterministic_export(tmp_path: Path, capsys) -> None:
+    (tmp_path / "sample.py").write_text(
+        "class Worker:\n    def run(self): pass\n\ndef main():\n    Worker().run()\n",
+        encoding="utf-8",
+    )
+
+    assert main([str(tmp_path), "--format", "mermaid"]) == 0
+
+    printed = capsys.readouterr().out
+    assert printed.startswith("flowchart LR\n")
+    assert '"sample.Worker.run"' in printed
+    assert '"calls"' in printed

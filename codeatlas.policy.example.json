@@ -1,0 +1,37 @@
+{
+  "layers": {
+    "presentation": [
+      "app.ui.*",
+      "app/api/**"
+    ],
+    "application": [
+      "app.services.*",
+      "app/use_cases/**"
+    ],
+    "domain": [
+      "app.domain.*",
+      "app/domain/**"
+    ],
+    "infrastructure": [
+      "app.db.*",
+      "app/infrastructure/**"
+    ]
+  },
+  "rules": [
+    {
+      "from": "presentation",
+      "deny": [
+        "infrastructure"
+      ],
+      "message": "Presentation code must use the application layer instead of infrastructure directly"
+    },
+    {
+      "from": "domain",
+      "deny": [
+        "presentation",
+        "infrastructure"
+      ],
+      "message": "The domain layer must remain independent of presentation and infrastructure"
+    }
+  ]
+}
