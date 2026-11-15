@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#08090c"/>
+  <defs>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="28" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="256" cy="256" r="180" fill="#3ec6e8" fill-opacity="0.18" filter="url(#glow)"/>
+  <rect x="56.32" y="56.32" width="399.36" height="399.36" rx="71.88" fill="#0e1016"/>
+  <rect x="63.51" y="63.51" width="384.98" height="384.98" rx="64.70" fill="none" stroke="#3ec6e8" stroke-opacity="0.35" stroke-width="3"/>
+    <rect x="158.66" y="158.66" width="194.69" height="194.69" rx="19.47" fill="none" stroke="#3ec6e8" stroke-width="13.38" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="158.66" y1="223.15" x2="353.34" y2="223.15" fill="none" stroke="#3ec6e8" stroke-width="9.73" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="158.66" y1="287.64" x2="353.34" y2="287.64" fill="none" stroke="#3ec6e8" stroke-width="9.73" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="223.15" y1="158.66" x2="223.15" y2="353.34" fill="none" stroke="#3ec6e8" stroke-width="9.73" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="287.64" y1="158.66" x2="287.64" y2="353.34" fill="none" stroke="#3ec6e8" stroke-width="9.73" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="256.00" cy="256.00" r="9.73" fill="#3ec6e8" stroke="none"/>
+    <line x1="256.00" y1="256.00" x2="191.51" y2="191.51" fill="none" stroke="#3ec6e8" stroke-width="9.73" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="256.00" y1="256.00" x2="320.49" y2="320.49" fill="none" stroke="#3ec6e8" stroke-width="9.73" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="191.51" cy="191.51" r="8.52" fill="#3ec6e8" stroke="none"/>
+    <circle cx="320.49" cy="320.49" r="8.52" fill="#3ec6e8" stroke="none"/>
+</svg>

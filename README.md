@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/assets/logo.svg" alt="codeatlas logo" width="128"></p>
+
 # CodeAtlas
 
 CodeAtlas turns a Python repository into an interactive symbol, dependency, change-impact and engineering-risk map without executing the target code.
